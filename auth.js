@@ -147,26 +147,28 @@ async function handleLogin(event) {
             }
         });
         
-        if (response.ok) {
-            const jwtToken = await response.text();
-            
-            // Validate JWT token
-            const decoded = decodeJWT(jwtToken);
-            if (!decoded) {
-                throw new Error('Invalid token received from server');
-            }
-            
-            // Store JWT token
-            localStorage.setItem('jwtToken', jwtToken);
-            
-            // Store user info from JWT
-            if (decoded.sub) {
-                localStorage.setItem('userId', decoded.sub);
-            }
-            
-            // Redirect to profile page
-            window.location.href = 'profile.html';
-        } else {
+      if (response.ok) {
+    const data = await response.json();
+
+    const jwtToken = data.token;
+    if (!jwtToken) {
+        throw new Error('No token received from server');
+    }
+
+    const decoded = decodeJWT(jwtToken);
+    if (!decoded) {
+        throw new Error('Invalid token received from server');
+    }
+
+    localStorage.setItem('jwtToken', jwtToken);
+
+    if (decoded.sub) {
+        localStorage.setItem('userId', decoded.sub);
+    }
+
+    window.location.href = 'profile.html';
+}
+ else {
             // Handle different error status codes
             let errorMsg = 'Login failed. Please check your credentials.';
             
