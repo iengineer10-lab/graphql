@@ -100,9 +100,17 @@ function decodeJWT(token) {
         if (parts.length !== 3) {
             return null;
         }
-        
-        const payload = parts[1];
-        const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+
+        let payload = parts[1];
+        // Replace base64url chars with base64 chars
+        payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+
+        // Add padding if necessary
+        while (payload.length % 4 !== 0) {
+            payload += '=';
+        }
+
+        const decoded = atob(payload);
         return JSON.parse(decoded);
     } catch (error) {
         console.error('Error decoding JWT:', error);
