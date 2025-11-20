@@ -120,12 +120,13 @@ async function handleLogin(event) {
         const encodedCredentials = encodeCredentials(identifier, password);
 
         const response = await fetch(AUTH_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${encodedCredentials}`
-                // No content-type needed for Basic Login
-            }
-        });
+    method: 'POST',
+    headers: {
+        'Authorization': `Basic ${encodedCredentials}`
+    }
+});
+
+        
 
         if (response.ok) {
             const data = await response.json();
