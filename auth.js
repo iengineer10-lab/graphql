@@ -23,18 +23,13 @@ const btnLoader = loginBtn.querySelector('.btn-loader');
 
 /**
  * Encode credentials to Base64 for Basic authentication
- * @param {string} identifier - Username or email
- * @param {string} password - User password
- * @returns {string} Base64 encoded credentials
  */
 function encodeCredentials(identifier, password) {
-    const credentials = `${identifier}:${password}`;
-    return btoa(credentials);
+    return btoa(`${identifier}:${password}`);
 }
 
 /**
- * Show error message to user
- * @param {string} message - Error message to display
+ * Show error message
  */
 function showError(message) {
     errorMessage.textContent = message;
@@ -49,8 +44,7 @@ function hideError() {
 }
 
 /**
- * Set loading state on login button
- * @param {boolean} loading - Whether to show loading state
+ * Set loading state
  */
 function setLoading(loading) {
     if (loading) {
@@ -66,49 +60,39 @@ function setLoading(loading) {
 
 /**
  * Validate input fields
- * @param {string} identifier - Username or email
- * @param {string} password - Password
- * @returns {boolean} Whether inputs are valid
  */
 function validateInputs(identifier, password) {
     if (!identifier || !password) {
         showError('Please enter both username/email and password');
         return false;
     }
-    
+
     if (identifier.length < 3) {
         showError('Username/email must be at least 3 characters');
         return false;
     }
-    
+
     if (password.length < 3) {
         showError('Password must be at least 3 characters');
         return false;
     }
-    
+
     return true;
 }
 
 /**
- * Decode JWT token to extract payload
- * @param {string} token - JWT token
- * @returns {object|null} Decoded token payload or null if invalid
+ * Decode JWT token
  */
 function decodeJWT(token) {
     try {
         const parts = token.split('.');
-        if (parts.length !== 3) {
-            return null;
-        }
+        if (parts.length !== 3) return null;
 
-        let payload = parts[1];
-        // Replace base64url chars with base64 chars
-        payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+        let payload = parts[1]
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
 
-        // Add padding if necessary
-        while (payload.length % 4 !== 0) {
-            payload += '=';
-        }
+        while (payload.length % 4 !== 0) payload += '=';
 
         const decoded = atob(payload);
         return JSON.parse(decoded);
@@ -119,81 +103,68 @@ function decodeJWT(token) {
 }
 
 /**
- * Handle login form submission
- * @param {Event} event - Form submit event
+ * Handle login submission
  */
 async function handleLogin(event) {
     event.preventDefault();
     hideError();
-    
+
     const identifier = identifierInput.value.trim();
     const password = passwordInput.value;
-    
-    // Validate inputs
-    if (!validateInputs(identifier, password)) {
-        return;
-    }
-    
+
+    if (!validateInputs(identifier, password)) return;
+
     setLoading(true);
-    
+
     try {
         const encodedCredentials = encodeCredentials(identifier, password);
-        
+
         const response = await fetch(AUTH_ENDPOINT, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${encodedCredentials}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Basic ${encodedCredentials}`
+                // No content-type needed for Basic Login
             }
         });
-        
-      if (response.ok) {
-    const data = await response.json();
 
-    const jwtToken = data.token;
-    if (!jwtToken) {
-        throw new Error('No token received from server');
-    }
+        if (response.ok) {
+            const data = await response.json();
 
-    const decoded = decodeJWT(jwtToken);
-    if (!decoded) {
-        throw new Error('Invalid token received from server');
-    }
+            const jwtToken = data.token;
+            if (!jwtToken) throw new Error('Token missing in response');
 
-    localStorage.setItem('jwtToken', jwtToken);
+            const decoded = decodeJWT(jwtToken);
+            if (!decoded) throw new Error('Invalid JWT format');
 
-    if (decoded.sub) {
-        localStorage.setItem('userId', decoded.sub);
-    }
-
-    window.location.href = 'profile.html';
-}
- else {
-            // Handle different error status codes
-            let errorMsg = 'Login failed. Please check your credentials.';
-            
-            if (response.status === 401) {
-                errorMsg = 'Invalid username/email or password';
-            } else if (response.status === 403) {
-                errorMsg = 'Access forbidden. Please contact support.';
-            } else if (response.status === 500) {
-                errorMsg = 'Server error. Please try again later.';
-            } else if (response.status >= 400 && response.status < 500) {
-                errorMsg = 'Invalid credentials. Please try again.';
+            // Save token & user ID
+            localStorage.setItem('jwtToken', jwtToken);
+            if (decoded.sub) {
+                localStorage.setItem('userId', decoded.sub);
             }
-            
-            showError(errorMsg);
+
+            // Redirect
+            window.location.href = 'profile.html';
+            return;
         }
+
+        // Error handling
+        let errorMsg = 'Login failed. Please check your credentials.';
+        if (response.status === 401) errorMsg = 'Invalid username/email or password';
+        else if (response.status === 403) errorMsg = 'Access forbidden. Contact support.';
+        else if (response.status === 500) errorMsg = 'Server error. Try again later.';
+
+        showError(errorMsg);
+
     } catch (error) {
         console.error('Login error:', error);
-        showError('Network error. Please check your connection and try again.');
+        showError('Network error. Please try again.');
     } finally {
         setLoading(false);
     }
 }
 
 /**
- * Logout function - clears JWT and redirects to login
+ * Logout
  */
 function logout() {
     localStorage.removeItem('jwtToken');
@@ -201,8 +172,8 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Attach event listener to form
+// Attach listener
 loginForm.addEventListener('submit', handleLogin);
 
-// Export logout function for use in other modules
+// Export logout
 window.logout = logout;
